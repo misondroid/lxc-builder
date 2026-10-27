@@ -9,12 +9,15 @@ DIST_DIR="${SCRIPT_DIR}/dist"
 
 # ---- Template configuration -----------------------------------------
 
-SUITE="${SUITE:-noble}"
+SUITE="${SUITE:-resolute}"
 ARCH="${ARCH:-arm64}"
 
 case "${SUITE}" in
     noble)
         VERSION="24.04"
+        ;;
+    resolute)
+        VERSION="26.04"
         ;;
     *)
         echo "ERROR: Unsupported Ubuntu suite: ${SUITE}" >&2
