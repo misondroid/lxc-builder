@@ -12,7 +12,7 @@ AMD64用はProxmoxのGUIから拾い放題なのですが、ARM64用はほので
    - work/ rootfsを配置して諸々の操作を行います。
 
 ## 使い方（Poxmox）
-- 私はPomoxでLXCを使いたかったので、Poxmoxでの使い方を書きます。
+- 私はProxmoxでLXCを使いたかったので、本稿ではProxmoxでの使い方を書きます。
   - ビルド作業を行ったのはaspbeyy Pi 4 + Proxmox VE 9.2 の上に作業用に構築したUbuntu26.04LTSのVMです。
   - Intel x64でも利用可能のはずですが、QEmuでのARM64エミュレーション下では未検証です。ラズパイやApple SiliconなMacでご利用いただいたほうが無難かと思います。
 
@@ -21,7 +21,7 @@ AMD64用はProxmoxのGUIから拾い放題なのですが、ARM64用はほので
 (build) $ #ビルドホストで実行するコマンド
 (poxmox) $ #Poxmoxホスト側で実行するコマンド  
 ```
-Proxmox側は基本的に`root`での操作になるので、プロンプトは`#`になるのですが、好みの問題なので、気にしないでください。
+Proxmox側は基本的に`root`での操作になるので、プロンプトは`#`になるのですが、一般ユーザーから`sudo`越しにやってるのはあくまで好みというか習慣というか宗教上の問題なので、あまり気にしないでください。
 ### 1. テンプレートの作成  
 ```bash
 # ビルドホストでの作業
@@ -38,12 +38,14 @@ scpとかでテンプレート用のストレージに突っ込めばOKです。
 Web UIからアップロードすることもできますが、こっちのが手っ取り早いです。
 
 ``` bash
-# ビルドホストでの作業（転送）
-(build) $ scp dist/ubuntu-24.04-minimal_RM64.tar.zst root@proxmox:/var/lib/vz/template/cache/
+##### ビルドホストでの作業（転送）
+(build) $ scp dist/ubuntu-26.04-minimal_RM64.tar.zst proxmox:/tmp
 ```
 ``` bash
-# Proxmoxホストでの作業
-(proxmox) $ pveam list local
+#### Proxmoxホストでの作業
+# 例ではデフォルトストレージにつっこんでます。
+(proxmox) $ sudo cp /tmp/ /var/lib/vz/template/cache/
+(proxmox) $ sudo pveam list local
 NAME                                                         SIZE  
 local:vztmpl/ubuntu-24.04-minimal_arm64.tar.zst              67.33MB
 # 登録が成功していたらここで出てきます。もちろんWebUIからでも確認できます。
@@ -52,6 +54,7 @@ local:vztmpl/ubuntu-24.04-minimal_arm64.tar.zst              67.33MB
 ### 3. Proxmox上でのコンテナ作成
 CLIからやってもいいですが、ここはWebUIのが楽かな、と思います。
 ```bash
+#### Proxmoxホストでの作業
 #### 割り当て可能なVMIDを確認
 # 下記の例ではVVMID100とVMID101でそれぞれVMとLXCが起動しているので、
 # 102移行が利用可能、と判定できる
@@ -71,7 +74,11 @@ VMID       Status     Lock         Name
     --memory {割り当てメモリ(MB単位)} \
     --swap {割り当てスワップメモリ(MB単位)} \
     --cores {割り当てvCPUコア数} \
-    --net0 {NIC #0の設定 例: name=eth0,bridge=vmbr0,ip=dhcp } \
+    --net0 {NIC #0の設定（後述） 例: name=eth0,bridge=vmbr0,ip=dhcp } \
     --unprivileged {1:特権コンテナ化 / 0:通常起動}
 
+#### `--netX`の各種オプション
+#  - name={コンテナから見えるアダプタのデバイス名 例:eth0}
+#  - bridgge={Proxmox側からアタッチするブリッジ／ネットワーク 例:vmbr0}
+#  - ip={アタッチするIP `dhcp`にしたらDHCPになります}
 ```
